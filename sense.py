@@ -14,6 +14,37 @@ screen = []
 
 print(screen)
 
+class TimerTrigger:
+    '''
+    A simple timer that is based on Frames per second.
+    is_update will return true when its time to update
+    '''
+    def __init__(self, fps):
+        self.fps_per_ms = 1000/fps
+        self.last_ms = 0
+    
+    def get_millisecond(self):
+        return time.perf_counter_ns() / 1000000
+    
+    def start(self):
+        '''
+            Call this when entering the game loop
+        '''
+        self.last_ms = self.get_millisecond()
+        
+    def is_update(self):
+        '''
+        Return True when its time to update
+        else return False
+        '''
+        curr_ms = self.get_millisecond()
+        time_diff_ms = self.get_millisecond() - self.last_ms
+        if time_diff_ms > self.fps_per_ms:
+            self.last_ms = curr_ms
+            return True
+        else:
+            return False
+
 class Screen:
     def __init__(self, sensehat):
         self.screen = [no_color for i in range(64)]
@@ -68,6 +99,7 @@ if __name__ == "__main__":
     sense.clear()
     player = Player(sense)
     screen = Screen(sense)
+    movementTimer = TimerTrigger(1)
     
     pressure = sense.get_pressure()
     print(pressure)
@@ -80,6 +112,7 @@ if __name__ == "__main__":
     pre_direction = "CENTER"
     direction = ""
     pre_time = get_millisecond()
+    movementTimer.start()
     while True:
         a = sense.get_accelerometer_raw()
         x = a['x']
@@ -108,7 +141,8 @@ if __name__ == "__main__":
         
         #When its time to update execute this portion
         #How fast this updates its controled by the fps variable
-        if time_diff > fps:
+        #if time_diff > fps:
+        if movementTimer.is_update():
             pre_time = cur_time
             #print("Frame Reached", time_diff)
             player.move(direction)
