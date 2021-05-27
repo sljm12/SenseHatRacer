@@ -5,14 +5,10 @@ from sense_hat import SenseHat
 from datetime import datetime as dt
 import time
 
-fps = 1000/1
-fps_enemy = 1000/2
-print("FPS", fps)
+
 no_color = (0,0,0)
+light_grey = (128, 128, 128)
 
-screen = []
-
-print(screen)
 
 class TimerTrigger:
     '''
@@ -46,22 +42,23 @@ class TimerTrigger:
             return False
 
 class Screen:
-    def __init__(self, sensehat):
-        self.screen = [no_color for i in range(64)]
+    def __init__(self, sensehat, bg_color):
+        self.bg_color = bg_color
+        self.screen = [bg_color for i in range(64)]
         self.sensehat = sensehat
     
     def clear_screen(self):
-        self.screen = [no_color for i in range(64)]
+        self.screen = [self.bg_color for i in range(64)]
         
     def draw(self):
         self.sensehat.set_pixels(self.screen)
     
     def set_pixel(self, x, y, color):
         self.screen[x+ y*8] = color
-        
+    
 
-def get_millisecond():
-    return time.perf_counter_ns() / 1000000
+#def get_millisecond():
+#    return time.perf_counter_ns() / 1000000
 
 #sense.show_message("Hello World")
 
@@ -98,8 +95,8 @@ if __name__ == "__main__":
     sense = SenseHat()
     sense.clear()
     player = Player(sense)
-    screen = Screen(sense)
-    movementTimer = TimerTrigger(1)
+    screen = Screen(sense, light_grey)
+    movementTimer = TimerTrigger(10)
     
     pressure = sense.get_pressure()
     print(pressure)
@@ -111,45 +108,41 @@ if __name__ == "__main__":
     print(temp)
     pre_direction = "CENTER"
     direction = ""
-    pre_time = get_millisecond()
+    #pre_time = get_millisecond()
     movementTimer.start()
-    while True:
-        a = sense.get_accelerometer_raw()
-        x = a['x']
-        y = a['y']
-        z = a['z']
-        
-        x = round(x, 3)
-        y = round(y, 3)
-        z = round(z, 3)
-        
-        if y > 0.1:
-            direction = "LEFT"
-        elif y < -0.1:
-            direction = "RIGHT"
-        else:
-            direction = "CENTER"
-        
-        if direction != pre_direction:
-            print(direction)
-            pre_direction = direction
+    try:
+        while True:
+            a = sense.get_accelerometer_raw()
+            x = a['x']
+            y = a['y']
+            z = a['z']
             
-        
-        cur_time = get_millisecond()
-        time_diff = cur_time - pre_time
-        #print(time_diff, fps)
-        
-        #When its time to update execute this portion
-        #How fast this updates its controled by the fps variable
-        #if time_diff > fps:
-        if movementTimer.is_update():
-            pre_time = cur_time
-            #print("Frame Reached", time_diff)
-            player.move(direction)
-            #player.draw()
-            screen.clear_screen()
-            screen.set_pixel(player.x, player.y, (255,0,0))
-            screen.draw()
+            x = round(x, 3)
+            y = round(y, 3)
+            z = round(z, 3)
+            
+            if y > 0.1:
+                direction = "LEFT"
+            elif y < -0.1:
+                direction = "RIGHT"
+            else:
+                direction = "CENTER"
+            
+            if direction != pre_direction:
+                print(direction)
+                pre_direction = direction
+                
+            
+            if movementTimer.is_update():
+                player.move(direction)
+                screen.clear_screen()
+                screen.set_pixel(player.x, player.y, (255,0,0))
+                screen.draw()
+    except:
+        pass
+    finally:
+        clear = [no_color for i in range(64)]
+        sense.set_pixels(clear)
     
     
     
