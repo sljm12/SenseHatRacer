@@ -8,6 +8,8 @@ import time
 
 no_color = (0,0,0)
 light_grey = (128, 128, 128)
+red = (255,0,0)
+blue = (0,0,255)
 
 
 class TimerTrigger:
@@ -81,26 +83,49 @@ class Player:
         print(self.x,self.y)
         
 class Enemy:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.time_update_factor = 2
-        self.previous_time_ns = get_millsecond()
+    def __init__(self,x=0, y=0):
+        self.x = x
+        self.y = y
+
+        self.destroy = False
         
     def update(self):
-        pass
-        
+        self.x = self.x + 1
+        if self.x > 7:
+            self.x = 7
+            self.destroy = True
+            
+
+class EnemyList:
+    def __init__(self):
+        self.enemies = []
+    
+    def update(self):
+        for i in self.enemies:
+            i.update()
+        #Remove those cars that are out of the screen
+        self.enemies = [i for i in self.enemies if i.destroy == False]
+    
+    def draw(self, screen):
+        for i in self.enemies:
+            screen.set_pixel(i.x, i.y, red)
 
 if __name__ == "__main__":
     sense = SenseHat()
     sense.clear()
+    
     player = Player(sense)
-    screen = Screen(sense, light_grey)
+    enemiesList = EnemyList()
+    enemy = Enemy(x=0, y=4)
+    
+    enemiesList.enemies.append(enemy)
+    
+    screen = Screen(sense, no_color)
     movementTimer = TimerTrigger(10)
+    enemyTimer = TimerTrigger(1)
     
     pressure = sense.get_pressure()
     print(pressure)
-    #sense.show_message(str(pressure))
 
     sense.clear()
 
@@ -108,8 +133,8 @@ if __name__ == "__main__":
     print(temp)
     pre_direction = "CENTER"
     direction = ""
-    #pre_time = get_millisecond()
     movementTimer.start()
+    enemyTimer.start()
     try:
         while True:
             a = sense.get_accelerometer_raw()
@@ -131,13 +156,27 @@ if __name__ == "__main__":
             if direction != pre_direction:
                 print(direction)
                 pre_direction = direction
-                
+            
+            #Updates for the movement
+            if enemyTimer.is_update():
+                '''
+                enemy.update()
+                print("enemy", enemy.x, enemy.y)
+                if enemy.destroy:
+                    pass
+                else:
+                    screen.set_pixel(enemy.x, enemy.y, red)
+                '''
+                enemiesList.update()
             
             if movementTimer.is_update():
                 player.move(direction)
-                screen.clear_screen()
-                screen.set_pixel(player.x, player.y, (255,0,0))
-                screen.draw()
+            
+            #Draw as fast as possible
+            screen.clear_screen()
+            enemiesList.draw(screen)
+            screen.set_pixel(player.x, player.y, blue)
+            screen.draw()
     except:
         pass
     finally:
