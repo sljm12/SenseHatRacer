@@ -4,6 +4,9 @@ Driving game using SenseHat
 from sense_hat import SenseHat
 from datetime import datetime as dt
 import time
+from random import randint
+from traceback import print_exception, print_tb
+import sys
 
 
 no_color = (0,0,0)
@@ -101,6 +104,9 @@ class EnemyList:
         self.enemies = []
     
     def update(self):
+        '''
+        Updates the position of the enemies and remove those that are destroyed
+        '''
         for i in self.enemies:
             i.update()
         #Remove those cars that are out of the screen
@@ -109,6 +115,71 @@ class EnemyList:
     def draw(self, screen):
         for i in self.enemies:
             screen.set_pixel(i.x, i.y, red)
+            
+class EnemyGeneration1:
+    def __init__(self,waves):
+        self.waves = waves
+        self.current_wave = 0
+        self.done = False
+    
+    def is_done(self):
+        return self.done
+    
+    def update(self):
+        start = randint(0, 7)
+        self.current_wave = self.current_wave + 1
+        if self.current_wave > self.waves:
+            self.done = True
+            return []
+        else:
+            return [Enemy(x=0, y=start)]
+            
+class EnemyGeneration2:
+    '''
+    Generates enemies by 2s, it first generates a number
+    '''
+    def __init__(self, waves):
+        self.waves=waves
+        self.current_wave = 0
+        self.done = False
+    
+    def update(self):
+        start = randint(0, 3)
+        self.current_wave = self.current_wave + 1
+        if self.current_wave > self.waves:
+            self.done = True
+            return []
+        else:
+            return [Enemy(x=0, y=start), Enemy(x=0,y=start+4)]
+    
+    def is_done(self):
+        '''
+        returns True if i have done finishing generating all the enemies under this algo
+        '''
+        return self.done
+    
+class EnemyGenerationAlgoList:
+    def __init__(self):
+        self.algo = []
+        self.current_algo_num = 0
+    
+    def update(self):
+        if self.is_no_more_algo():
+            pass
+        else:
+            current_algo = self.algo[self.current_algo_num]
+            r = current_algo.update()
+            if current_algo.is_done():
+                self.current_algo_num = self.current_algo_num + 1
+            return r
+        
+    def is_no_more_algo(self):
+        if self.current_algo_num >= len(self.algo):
+            return True
+        else:
+            return False
+        
+        
 
 if __name__ == "__main__":
     sense = SenseHat()
@@ -116,13 +187,18 @@ if __name__ == "__main__":
     
     player = Player(sense)
     enemiesList = EnemyList()
-    enemy = Enemy(x=0, y=4)
+    algo_list = EnemyGenerationAlgoList()
+    enemyGeneration1 = EnemyGeneration1(1)
+    enemyGeneration2 = EnemyGeneration2(1)
+    algo_list.algo.extend([enemyGeneration1, enemyGeneration2])
+    #enemy = Enemy(x=0, y=4)
     
-    enemiesList.enemies.append(enemy)
+    #enemiesList.enemies.append(enemy)
     
     screen = Screen(sense, no_color)
     movementTimer = TimerTrigger(10)
-    enemyTimer = TimerTrigger(1)
+    enemyTimer = TimerTrigger(2)
+    enemyGenerationTimer = TimerTrigger(1)
     
     pressure = sense.get_pressure()
     print(pressure)
@@ -135,6 +211,7 @@ if __name__ == "__main__":
     direction = ""
     movementTimer.start()
     enemyTimer.start()
+    enemyGenerationTimer.start()
     try:
         while True:
             a = sense.get_accelerometer_raw()
@@ -157,6 +234,10 @@ if __name__ == "__main__":
                 print(direction)
                 pre_direction = direction
             
+            if enemyGenerationTimer.is_update():
+                if not algo_list.is_no_more_algo():
+                    enemiesList.enemies.extend(algo_list.update())
+                pass
             #Updates for the movement
             if enemyTimer.is_update():
                 '''
@@ -177,8 +258,8 @@ if __name__ == "__main__":
             enemiesList.draw(screen)
             screen.set_pixel(player.x, player.y, blue)
             screen.draw()
-    except:
-        pass
+    except Exception as e:
+        print_tb(sys.exc_info()[2])
     finally:
         clear = [no_color for i in range(64)]
         sense.set_pixels(clear)
