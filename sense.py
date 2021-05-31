@@ -28,12 +28,14 @@ class ExplosionAnimation:
     
     def draw(self, screen):
         if self.stage == 0:
-            screen.set_pixel(x, y, self.start_yellow)
+            screen.set_pixel(self.x, self.y, self.start_yellow)
         elif self.stage == 1:
-            screen.set_pixel(x, y, self.medium_orage)
+            screen.set_pixel(self.x, self.y, self.medium_orange)
+        elif self.stage == 2:
+            screen.set_pixel(self.x, self.y, self.end_orange)
             
     def finished(self):
-        return True if self.stage >1 else False
+        return True if self.stage >2 else False
         
 
 class TimerTrigger:
@@ -240,7 +242,7 @@ if __name__ == "__main__":
     movementTimer = TimerTrigger(10)
     enemyTimer = TimerTrigger(5)
     enemyGenerationTimer = TimerTrigger(2)
-    animationTimer = TimerTrigger(2)
+    animationTimer = TimerTrigger(1)
     
     timerList = [movementTimer, enemyGenerationTimer, enemyTimer]
     
@@ -316,6 +318,8 @@ if __name__ == "__main__":
         screen.clear_screen()
         enemiesList.draw(screen)
         screen.set_pixel(player.x, player.y, blue)
+        if explosionAnimation is not None:
+            explosionAnimation.draw(screen)
         screen.draw()
     #except Exception as e:
     #    print_tb(sys.exc_info()[2])
