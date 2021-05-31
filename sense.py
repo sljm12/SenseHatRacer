@@ -14,6 +14,27 @@ light_grey = (128, 128, 128)
 red = (255,0,0)
 blue = (0,0,255)
 
+class ExplosionAnimation:
+    def __init__(self, x, y):
+        self.start_yellow = (255,254,152)
+        self.medium_orange = (255,137,82)
+        self.end_orange = (231,106,48)
+        self.stage = 0
+        self.x = x
+        self.y = y
+    
+    def update(self):
+        self.stage = self.stage + 1
+    
+    def draw(self, screen):
+        if self.stage == 0:
+            screen.set_pixel(x, y, self.start_yellow)
+        elif self.stage == 1:
+            screen.set_pixel(x, y, self.medium_orage)
+            
+        
+    
+        
 
 class TimerTrigger:
     '''
@@ -23,6 +44,7 @@ class TimerTrigger:
     def __init__(self, fps):
         self.fps_per_ms = 1000/fps
         self.last_ms = 0
+        self.pause = False
     
     def get_millisecond(self):
         return time.perf_counter_ns() / 1000000
@@ -32,19 +54,26 @@ class TimerTrigger:
             Call this when entering the game loop
         '''
         self.last_ms = self.get_millisecond()
+        self.pause = False
+        
+    def pause(self):
+        self.pause == True
         
     def is_update(self):
         '''
         Return True when its time to update
         else return False
         '''
-        curr_ms = self.get_millisecond()
-        time_diff_ms = self.get_millisecond() - self.last_ms
-        if time_diff_ms > self.fps_per_ms:
-            self.last_ms = curr_ms
-            return True
+        if self.pause:
+           return False
         else:
-            return False
+            curr_ms = self.get_millisecond()
+            time_diff_ms = self.get_millisecond() - self.last_ms
+            if time_diff_ms > self.fps_per_ms:
+                self.last_ms = curr_ms
+                return True
+            else:
+                return False
 
 class Screen:
     def __init__(self, sensehat, bg_color):
@@ -84,6 +113,12 @@ class Player:
         elif dir == "RIGHT":
             self.y = 0 if (self.y- 1) < 0 else self.y-1
         print(self.x,self.y)
+    
+    def check_collision(self, enemyList):
+        for e in enemyList:
+            if e.x == self.x and e.y == self.y:
+                return True
+        return False
         
 class Enemy:
     def __init__(self,x=0, y=0):
@@ -188,8 +223,8 @@ if __name__ == "__main__":
     player = Player(sense)
     enemiesList = EnemyList()
     algo_list = EnemyGenerationAlgoList()
-    enemyGeneration1 = EnemyGeneration1(1)
-    enemyGeneration2 = EnemyGeneration2(1)
+    enemyGeneration1 = EnemyGeneration1(10)
+    enemyGeneration2 = EnemyGeneration2(30)
     algo_list.algo.extend([enemyGeneration1, enemyGeneration2])
     #enemy = Enemy(x=0, y=4)
     
@@ -197,8 +232,11 @@ if __name__ == "__main__":
     
     screen = Screen(sense, no_color)
     movementTimer = TimerTrigger(10)
-    enemyTimer = TimerTrigger(2)
-    enemyGenerationTimer = TimerTrigger(1)
+    enemyTimer = TimerTrigger(5)
+    enemyGenerationTimer = TimerTrigger(2)
+    animationTimer = TimerTrigger(2)
+    
+    timerList = [movementTimer, enemyGenerationTimer, enemyTimer]
     
     pressure = sense.get_pressure()
     print(pressure)
@@ -252,6 +290,8 @@ if __name__ == "__main__":
             
             if movementTimer.is_update():
                 player.move(direction)
+                if player.check_collision(enemiesList.enemies):
+                    print("Collide")
             
             #Draw as fast as possible
             screen.clear_screen()
