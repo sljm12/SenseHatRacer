@@ -32,8 +32,8 @@ class ExplosionAnimation:
         elif self.stage == 1:
             screen.set_pixel(x, y, self.medium_orage)
             
-        
-    
+    def finished(self):
+        return True if self.stage >1 else False
         
 
 class TimerTrigger:
@@ -44,7 +44,7 @@ class TimerTrigger:
     def __init__(self, fps):
         self.fps_per_ms = 1000/fps
         self.last_ms = 0
-        self.pause = False
+        self.pause_state = True
     
     def get_millisecond(self):
         return time.perf_counter_ns() / 1000000
@@ -54,17 +54,17 @@ class TimerTrigger:
             Call this when entering the game loop
         '''
         self.last_ms = self.get_millisecond()
-        self.pause = False
+        self.pause_state = False
         
     def pause(self):
-        self.pause == True
+        self.pause_state = True
         
     def is_update(self):
         '''
         Return True when its time to update
         else return False
         '''
-        if self.pause:
+        if self.pause_state:
            return False
         else:
             curr_ms = self.get_millisecond()
@@ -151,6 +151,11 @@ class EnemyList:
         for i in self.enemies:
             screen.set_pixel(i.x, i.y, red)
             
+    def remove(self, x, y):
+        for e in self.enemies:
+            if e.x == x and e.y == y:
+                self.enemies.remove(e)
+            
 class EnemyGeneration1:
     def __init__(self,waves):
         self.waves = waves
@@ -226,6 +231,7 @@ if __name__ == "__main__":
     enemyGeneration1 = EnemyGeneration1(10)
     enemyGeneration2 = EnemyGeneration2(30)
     algo_list.algo.extend([enemyGeneration1, enemyGeneration2])
+    explosionAnimation = None
     #enemy = Enemy(x=0, y=4)
     
     #enemiesList.enemies.append(enemy)
@@ -250,59 +256,72 @@ if __name__ == "__main__":
     movementTimer.start()
     enemyTimer.start()
     enemyGenerationTimer.start()
-    try:
-        while True:
-            a = sense.get_accelerometer_raw()
-            x = a['x']
-            y = a['y']
-            z = a['z']
-            
-            x = round(x, 3)
-            y = round(y, 3)
-            z = round(z, 3)
-            
-            if y > 0.1:
-                direction = "LEFT"
-            elif y < -0.1:
-                direction = "RIGHT"
-            else:
-                direction = "CENTER"
-            
-            if direction != pre_direction:
-                print(direction)
-                pre_direction = direction
-            
-            if enemyGenerationTimer.is_update():
-                if not algo_list.is_no_more_algo():
-                    enemiesList.enemies.extend(algo_list.update())
+    #try:
+    while True:
+        a = sense.get_accelerometer_raw()
+        x = a['x']
+        y = a['y']
+        z = a['z']
+        
+        x = round(x, 3)
+        y = round(y, 3)
+        z = round(z, 3)
+        
+        if y > 0.1:
+            direction = "LEFT"
+        elif y < -0.1:
+            direction = "RIGHT"
+        else:
+            direction = "CENTER"
+        
+        if direction != pre_direction:
+            print(direction)
+            pre_direction = direction
+        
+        if enemyGenerationTimer.is_update():
+            if not algo_list.is_no_more_algo():
+                enemiesList.enemies.extend(algo_list.update())
+            pass
+        #Updates for the movement
+        if enemyTimer.is_update():
+            '''
+            enemy.update()
+            print("enemy", enemy.x, enemy.y)
+            if enemy.destroy:
                 pass
-            #Updates for the movement
-            if enemyTimer.is_update():
-                '''
-                enemy.update()
-                print("enemy", enemy.x, enemy.y)
-                if enemy.destroy:
-                    pass
-                else:
-                    screen.set_pixel(enemy.x, enemy.y, red)
-                '''
-                enemiesList.update()
-            
-            if movementTimer.is_update():
-                player.move(direction)
-                if player.check_collision(enemiesList.enemies):
-                    print("Collide")
-            
-            #Draw as fast as possible
-            screen.clear_screen()
-            enemiesList.draw(screen)
-            screen.set_pixel(player.x, player.y, blue)
-            screen.draw()
-    except Exception as e:
-        print_tb(sys.exc_info()[2])
-    finally:
-        clear = [no_color for i in range(64)]
-        sense.set_pixels(clear)
+            else:
+                screen.set_pixel(enemy.x, enemy.y, red)
+            '''
+            enemiesList.update()
+        
+        if movementTimer.is_update():
+            player.move(direction)
+            if player.check_collision(enemiesList.enemies):
+                print("Collide")
+                enemiesList.remove(player.x, player.y)
+                [t.pause() for t in timerList]
+                explosionAnimation = ExplosionAnimation(player.x, player.y)
+                animationTimer.start()
+                
+        if animationTimer.is_update():
+            print("Explosion Animation")
+            explosionAnimation.update()
+            if explosionAnimation.finished():
+                print("Explosion Animation Finished")
+                explosionAnimation = None
+                animationTimer.pause()
+                [t.start() for t in timerList]
+        
+        #Draw as fast as possible
+        screen.clear_screen()
+        enemiesList.draw(screen)
+        screen.set_pixel(player.x, player.y, blue)
+        screen.draw()
+    #except Exception as e:
+    #    print_tb(sys.exc_info()[2])
+    #finally:
+    #    clear = [no_color for i in range(64)]
+    #    sense.set_pixels(clear)
     
     
     
