@@ -40,7 +40,13 @@ class ExplosionAnimation:
 class GameOverAnimation:
     def __init__(self):
         self.stage = 0
+        #Draw G
         self.game_over = [(1,7),(1,6),(1,5),(2,7),(3,7),(4,7),(5,7), (6,7), (6,6),(6,5),(5,5), (4,5)]
+        #Draw O
+        for x in range (1,7):
+            for y in [3,1]:
+                self.game_over.append((x,y))
+        self.game_over.extend([(1,2),(6,2)])
     
     def update(self):
         self.stage = self.stage + 1
@@ -241,6 +247,7 @@ def get_direction(sense):
     '''
     sense = SenseHat instance
     '''
+    
     a = sense.get_accelerometer_raw()
     x = a['x']
     y = a['y']
@@ -257,11 +264,11 @@ def get_direction(sense):
     else:
         return "CENTER"
     
-def main_game():
+def main_game(sense):
     lives = 3
-    sense = SenseHat()
-    sense.clear()
     
+    #sense = SenseHat()
+    #sense.clear()
     player = Player(sense)
     enemiesList = EnemyList()
     algo_list = EnemyGenerationAlgoList()
@@ -347,7 +354,8 @@ def game_over(sense):
 
 if __name__ == "__main__":
     sense = SenseHat()
-    #main_game()
+    sense.clear()
+    #main_game(sense)
     game_over(sense)
     
     
