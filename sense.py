@@ -8,7 +8,6 @@ from random import randint
 from traceback import print_exception, print_tb
 import sys
 
-
 no_color = (0,0,0)
 light_grey = (128, 128, 128)
 red = (255,0,0)
@@ -36,7 +35,23 @@ class ExplosionAnimation:
             
     def finished(self):
         return True if self.stage >2 else False
+
+
+class GameOverAnimation:
+    def __init__(self):
+        self.stage = 0
+        self.game_over = [(1,7),(1,6),(1,5),(2,7),(3,7),(4,7),(5,7), (6,7), (6,6),(6,5),(5,5), (4,5)]
+    
+    def update(self):
+        self.stage = self.stage + 1
         
+    def draw(self, screen):
+        for i in self.game_over:
+            screen.set_pixel(i[0],i[1], red)
+    
+    def finished(self):
+        return True if self.stage >2 else False
+    
 
 class TimerTrigger:
     '''
@@ -220,10 +235,30 @@ class EnemyGenerationAlgoList:
             return True
         else:
             return False
-        
-        
 
-if __name__ == "__main__":
+
+def get_direction(sense):
+    '''
+    sense = SenseHat instance
+    '''
+    a = sense.get_accelerometer_raw()
+    x = a['x']
+    y = a['y']
+    z = a['z']
+    
+    x = round(x, 3)
+    y = round(y, 3)
+    z = round(z, 3)
+    
+    if y > 0.1:
+        return "LEFT"
+    elif y < -0.1:
+        return "RIGHT"
+    else:
+        return "CENTER"
+    
+def main_game():
+    lives = 3
     sense = SenseHat()
     sense.clear()
     
@@ -234,9 +269,6 @@ if __name__ == "__main__":
     enemyGeneration2 = EnemyGeneration2(30)
     algo_list.algo.extend([enemyGeneration1, enemyGeneration2])
     explosionAnimation = None
-    #enemy = Enemy(x=0, y=4)
-    
-    #enemiesList.enemies.append(enemy)
     
     screen = Screen(sense, no_color)
     movementTimer = TimerTrigger(10)
@@ -245,36 +277,17 @@ if __name__ == "__main__":
     animationTimer = TimerTrigger(1)
     
     timerList = [movementTimer, enemyGenerationTimer, enemyTimer]
-    
-    pressure = sense.get_pressure()
-    print(pressure)
 
-    sense.clear()
-
-    temp = sense.get_temperature()
-    print(temp)
     pre_direction = "CENTER"
     direction = ""
+    
+    #Start Timers
     movementTimer.start()
     enemyTimer.start()
     enemyGenerationTimer.start()
-    #try:
+    
     while True:
-        a = sense.get_accelerometer_raw()
-        x = a['x']
-        y = a['y']
-        z = a['z']
-        
-        x = round(x, 3)
-        y = round(y, 3)
-        z = round(z, 3)
-        
-        if y > 0.1:
-            direction = "LEFT"
-        elif y < -0.1:
-            direction = "RIGHT"
-        else:
-            direction = "CENTER"
+        direction = get_direction(sense)
         
         if direction != pre_direction:
             print(direction)
@@ -286,14 +299,6 @@ if __name__ == "__main__":
             pass
         #Updates for the movement
         if enemyTimer.is_update():
-            '''
-            enemy.update()
-            print("enemy", enemy.x, enemy.y)
-            if enemy.destroy:
-                pass
-            else:
-                screen.set_pixel(enemy.x, enemy.y, red)
-            '''
             enemiesList.update()
         
         if movementTimer.is_update():
@@ -303,6 +308,9 @@ if __name__ == "__main__":
                 enemiesList.remove(player.x, player.y)
                 [t.pause() for t in timerList]
                 explosionAnimation = ExplosionAnimation(player.x, player.y)
+                lives = lives - 1
+                if lives == 0:
+                    return
                 animationTimer.start()
                 
         if animationTimer.is_update():
@@ -321,11 +329,25 @@ if __name__ == "__main__":
         if explosionAnimation is not None:
             explosionAnimation.draw(screen)
         screen.draw()
-    #except Exception as e:
-    #    print_tb(sys.exc_info()[2])
-    #finally:
-    #    clear = [no_color for i in range(64)]
-    #    sense.set_pixels(clear)
     
+def game_over(sense):
+    animationTimer = TimerTrigger(2)
+    animationTimer.start()
+    ga = GameOverAnimation()
+    screen = Screen(sense, no_color)
+    while True:
+        if animationTimer.is_update():
+            ga.update()
+            if ga.finished():
+                return
+        ga.draw(screen)
+        screen.draw()
+    
+        
+
+if __name__ == "__main__":
+    sense = SenseHat()
+    #main_game()
+    game_over(sense)
     
     
